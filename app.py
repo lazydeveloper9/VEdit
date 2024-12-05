@@ -1,10 +1,58 @@
-
+import os
+import pyaudio
+import json
+from vosk import Model, KaldiRecognizer
 from tkinter import *
 from tkinter.messagebox import showinfo
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-import os
+import threading
 
-import speech_recognition as sr
+# Set the path to your Vosk model directory
+model_path = "C:/Users/YOGENDRA/Desktop/VEdit/model"  # Update this with the actual path to the Vosk model
+
+# Initialize the Vosk model
+model = Model(model_path)
+
+# Initialize PyAudio
+p = pyaudio.PyAudio()
+
+# Open microphone stream
+stream = p.open(rate=16000, channels=1, format=pyaudio.paInt16,
+                input=True, frames_per_buffer=4000)
+
+recognizer = KaldiRecognizer(model, 16000)
+
+# Function to continuously listen to the microphone and recognize speech
+def listen_to_microphone(insert_text_func):
+    print("Please say something:")
+
+    while True:
+        data = stream.read(4000)
+
+        # If the recognizer has received enough audio to process
+        if recognizer.AcceptWaveform(data):
+            result = recognizer.Result()  # Get the result after recognition
+            text = json.loads(result)['text']  # Parse the recognized text
+            print(text)
+
+            # Insert the recognized text into the Text widget
+            insert_text_func(f"{text}\n")
+
+            # If 'exit' is detected, break the loop
+            if 'exit' in text:
+                print("Exiting...")
+                break
+
+# Function that inserts text into the Text widget in the main thread
+def insert_text(text):
+    TextArea.insert(END, text)
+    TextArea.yview(END)  # Scroll to the bottom to view the latest text
+
+# Function to start the background task (called immediately when the window is created)
+def start_background_task():
+    # Create a new thread to listen to the microphone and update the GUI
+    thread = threading.Thread(target=listen_to_microphone, args=(insert_text,), daemon=True)
+    thread.start()
 
 
 #python -m pip install SpeechRecognition[whisper-local]
@@ -126,28 +174,29 @@ if __name__ == '__main__':
     Scroll.config(command=TextArea.yview)
     TextArea.config(yscrollcommand=Scroll.set)
 
-    # obtain audio from the microphone
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Say something!")
-        audio = r.listen(source)
-    # recognize speech using whisper
-    try:
-        entry = r.recognize_whisper(audio, language="english")
-        print("Whisper thinks you said : " + entry)
-    except sr.UnknownValueError:
-        print("Whisper could not understand audio")
-    except sr.RequestError as e:
-        print(f"Could not request results from Whisper; {e}")
+    # # obtain audio from the microphone
+    # r = sr.Recognizer()
+    # with sr.Microphone() as source:
+    #     print("Say something!")
+    #     audio = r.listen(source)
+    # # recognize speech using whisper
+    # try:
+    #     entry = r.recognize_whisper(audio, language="english")
+    #     print("Whisper thinks you said : " + entry)
+    # except sr.UnknownValueError:
+    #     print("Whisper could not understand audio")
+    # except sr.RequestError as e:
+    #     print(f"Could not request results from Whisper; {e}")
 
             
-    # Define a variable with some text
-    my_text_variable = entry
+    # # Define a variable with some text
+    # my_text_variable = entry
 
 
 
-    # Insert the variable's value into the Text widget
-    TextArea.insert(END, my_text_variable)
+    # # Insert the variable's value into the Text widget
+    # TextArea.insert(END, my_text_variable)
+    start_background_task()
 
 
     root.mainloop()
