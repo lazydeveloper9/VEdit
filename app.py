@@ -7,6 +7,7 @@ from tkinter.messagebox import showinfo
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import threading
 
+#for compilling
 # Set the path to your Vosk model directory
 model_path = "C:/Users/YOGENDRA/Desktop/VEdit/model"  # Update this with the actual path to the Vosk model
 
@@ -28,15 +29,27 @@ def listen_to_microphone(insert_text_func):
 
     while True:
         data = stream.read(4000)
-
+        code = ''
         # If the recognizer has received enough audio to process
         if recognizer.AcceptWaveform(data):
             result = recognizer.Result()  # Get the result after recognition
             text = json.loads(result)['text']  # Parse the recognized text
             print(text)
-
+            #Code input from words
+            if 'void main function' in text.lower():
+                print("main function inserting")
+                code = '#include<stdio.h>\n#include<conio.h>\nvoid main()\{\n//print frome here\n'
+            elif 'array of five elements' in text.lower():
+                print("inserting Array")
+                code = 'int arrayName[5];'
+            elif 'print hello world' in text.lower():
+                print("inserting...")
+                code = 'print("Hello World");'
+            elif 'close main' in text.lower():
+                print("Closing Main Function")
+                code = '\ngetch();\n\}'
             # Insert the recognized text into the Text widget
-            insert_text_func(f"{text}\n")
+            insert_text_func(f"{code}")
 
             # If 'exit' is detected, break the loop
             if 'exit' in text:
